@@ -1,0 +1,3840 @@
+{
+  "title": "Q6. Repeat reviewers whose listing is available again + host's other listings",
+  "params": {
+    "limit": 100
+  },
+  "rows_returned": 100,
+  "ms": 99.4,
+  "plan": {
+    "indexes": [
+      "most_repeat"
+    ],
+    "stages": [
+      "FETCH",
+      "IXSCAN",
+      "PROJECTION_DEFAULT"
+    ],
+    "keys_examined": 23694,
+    "docs_examined": 23694,
+    "collscan": false
+  },
+  "pipeline": [
+    {
+      "$sort": {
+        "reviews": -1,
+        "last_review": -1
+      }
+    },
+    {
+      "$lookup": {
+        "from": "calendar",
+        "localField": "_id.listing_id",
+        "foreignField": "listing_id",
+        "let": {
+          "months": "$review_months"
+        },
+        "pipeline": [
+          {
+            "$match": {
+              "available": true
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$in": [
+                  {
+                    "$month": "$date"
+                  },
+                  "$$months"
+                ]
+              }
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "$month": "$date"
+              },
+              "nights": {
+                "$sum": 1
+              }
+            }
+          }
+        ],
+        "as": "available_in_review_months"
+      }
+    },
+    {
+      "$match": {
+        "available_in_review_months.0": {
+          "$exists": true
+        }
+      }
+    },
+    {
+      "$limit": 100
+    },
+    {
+      "$lookup": {
+        "from": "listings",
+        "localField": "_id.listing_id",
+        "foreignField": "_id",
+        "as": "listing"
+      }
+    },
+    {
+      "$unwind": "$listing"
+    },
+    {
+      "$lookup": {
+        "from": "listings",
+        "let": {
+          "h": "$listing.host.host_id",
+          "c": "$listing.city",
+          "self": "$listing._id"
+        },
+        "pipeline": [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$eq": [
+                      "$host.host_id",
+                      "$$h"
+                    ]
+                  },
+                  {
+                    "$eq": [
+                      "$city",
+                      "$$c"
+                    ]
+                  },
+                  {
+                    "$ne": [
+                      "$_id",
+                      "$$self"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "listing_id": "$_id",
+              "name": 1,
+              "listing_url": 1,
+              "minimum_nights": 1,
+              "maximum_nights": 1
+            }
+          }
+        ],
+        "as": "other_listings_same_host_city"
+      }
+    },
+    {
+      "$project": {
+        "_id": 0,
+        "reviewer_name": 1,
+        "reviewer_id": "$_id.reviewer_id",
+        "times_reviewed": "$reviews",
+        "listing_id": "$listing._id",
+        "name": "$listing.name",
+        "listing_url": "$listing.listing_url",
+        "description": "$listing.description",
+        "host_name": "$listing.host.host_name",
+        "city": "$listing.city",
+        "previously_booked": {
+          "$literal": true
+        },
+        "previously_booked_months": {
+          "$map": {
+            "input": {
+              "$sortArray": {
+                "input": "$review_months",
+                "sortBy": 1
+              }
+            },
+            "in": {
+              "$arrayElemAt": [
+                [
+                  "",
+                  "January",
+                  "February",
+                  "March",
+                  "April",
+                  "May",
+                  "June",
+                  "July",
+                  "August",
+                  "September",
+                  "October",
+                  "November",
+                  "December"
+                ],
+                "$$this"
+              ]
+            }
+          }
+        },
+        "available_again_in": {
+          "$map": {
+            "input": {
+              "$sortArray": {
+                "input": "$available_in_review_months",
+                "sortBy": {
+                  "_id": 1
+                }
+              }
+            },
+            "in": {
+              "$arrayElemAt": [
+                [
+                  "",
+                  "January",
+                  "February",
+                  "March",
+                  "April",
+                  "May",
+                  "June",
+                  "July",
+                  "August",
+                  "September",
+                  "October",
+                  "November",
+                  "December"
+                ],
+                "$$this._id"
+              ]
+            }
+          }
+        },
+        "minimum_nights": "$listing.minimum_nights",
+        "maximum_nights": "$listing.maximum_nights",
+        "other_listings_same_host_city": 1
+      }
+    }
+  ],
+  "first_rows": [
+    {
+      "reviewer_name": "Joanna",
+      "other_listings_same_host_city": [
+        {
+          "name": "Hacienda Height room at home Private and quiet",
+          "listing_url": "https://www.airbnb.com/rooms/28012443",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28012443
+        },
+        {
+          "name": "Hacienda Height room at home Quiet and comfortable",
+          "listing_url": "https://www.airbnb.com/rooms/28183497",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28183497
+        },
+        {
+          "name": "Hacienda Heights room in house Comfort convenience",
+          "listing_url": "https://www.airbnb.com/rooms/28317519",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28317519
+        },
+        {
+          "name": "hacienda heights room at home wide and bright",
+          "listing_url": "https://www.airbnb.com/rooms/38128520",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 38128520
+        }
+      ],
+      "reviewer_id": 34853175,
+      "times_reviewed": 102,
+      "listing_id": 27931123,
+      "name": "Hacienda Heights room with pravite bathroom",
+      "listing_url": "https://www.airbnb.com/rooms/27931123",
+      "description": "The room has a table lamp, an air conditioning, a heater. There are bus stops, large supermarkets, Shoping, restaurants, and gas stations nearby. Easy parking and 18 miles from Disney. 3 miles from Hsi Lai Temple.<br />Starting April 29, 2026, parking will be prohibited on the streets every Wednesday and Thursday from 7:00 a.m. to 11:00 a.m.",
+      "host_name": "\u2068Jisong &\u2069",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 180
+    },
+    {
+      "reviewer_name": "Joanna",
+      "other_listings_same_host_city": [
+        {
+          "name": "Hacienda Heights room with pravite bathroom",
+          "listing_url": "https://www.airbnb.com/rooms/27931123",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 27931123
+        },
+        {
+          "name": "Hacienda Height room at home Private and quiet",
+          "listing_url": "https://www.airbnb.com/rooms/28012443",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28012443
+        },
+        {
+          "name": "Hacienda Height room at home Quiet and comfortable",
+          "listing_url": "https://www.airbnb.com/rooms/28183497",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28183497
+        },
+        {
+          "name": "hacienda heights room at home wide and bright",
+          "listing_url": "https://www.airbnb.com/rooms/38128520",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 38128520
+        }
+      ],
+      "reviewer_id": 34853175,
+      "times_reviewed": 101,
+      "listing_id": 28317519,
+      "name": "Hacienda Heights room in house Comfort convenience",
+      "listing_url": "https://www.airbnb.com/rooms/28317519",
+      "description": "The room has a table lamp, an air conditioning. There are bus stops, large supermarkets, Shoping, restaurants, and gas stations nearby. Easy parking and 18 miles from Disney. 3 miles from Hsi Lai Temple.",
+      "host_name": "\u2068Jisong &\u2069",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 180
+    },
+    {
+      "reviewer_name": "Fred",
+      "other_listings_same_host_city": [
+        {
+          "name": "ARTSY ROOM \u2014 A Small Private Gallery with a Bed",
+          "listing_url": "https://www.airbnb.com/rooms/16813276",
+          "minimum_nights": 3,
+          "maximum_nights": 90,
+          "listing_id": 16813276
+        },
+        {
+          "name": "Rose Bowl Treetop Suite with Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39200965",
+          "minimum_nights": 30,
+          "maximum_nights": 1125,
+          "listing_id": 39200965
+        },
+        {
+          "name": "Enchanting Room - French Charm with Desk & Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39201332",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 39201332
+        },
+        {
+          "name": "Rose Bowl Room, with Desk & Free Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39201521",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 39201521
+        },
+        {
+          "name": "FRENCHY HOUSE at the Pasadena Rose Bowl",
+          "listing_url": "https://www.airbnb.com/rooms/52786257",
+          "minimum_nights": 30,
+          "maximum_nights": 400,
+          "listing_id": 52786257
+        },
+        {
+          "name": "Rose Bowl Executive Suite",
+          "listing_url": "https://www.airbnb.com/rooms/871996520620554911",
+          "minimum_nights": 30,
+          "maximum_nights": 200,
+          "listing_id": 871996520620554911
+        },
+        {
+          "name": "Starry Night Nook, sleep inside a painting",
+          "listing_url": "https://www.airbnb.com/rooms/1672082671627126852",
+          "minimum_nights": 3,
+          "maximum_nights": 365,
+          "listing_id": 1672082671627126852
+        }
+      ],
+      "reviewer_id": 107488231,
+      "times_reviewed": 86,
+      "listing_id": 16651582,
+      "name": "A Sunlit Suite in a Storybook Home",
+      "listing_url": "https://www.airbnb.com/rooms/16651582",
+      "description": "Dear You,<br /><br />I don't know your name yet, or where you're flying in from, or what kind of week you've had \u2014 but I have a room for you, and I think you're going to like it.<br /><br />It's upstairs, in a hundred-year-old house on a quiet Pasadena street where the trees are old enough to remember things. The kind of street where the porch lights come on one by one in the evening like a slow, dignified applause. A welcome to a great many tired, happy people, and now it's your turn.<br /><br />SRH2023-00439",
+      "host_name": "Karilyn",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 3,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Rebecca",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 32750926,
+      "times_reviewed": 80,
+      "listing_id": 34753879,
+      "name": "A PRIVATE ENTRANCE To A Private Bedroom & Bath",
+      "listing_url": "https://www.airbnb.com/rooms/34753879",
+      "description": "You will have an entire  guest Suite to yourself. Our little unique get-a-way has its own private entrance. It has a small kitchen nook where you can enjoy coffee. You will have your own bathroom that has a shower. The bedroom has a queen size bed and a chair for watching TV with directv. The rooms are equipped with heat and air conditioning.",
+      "host_name": "Kimberly Karene",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Fred",
+      "other_listings_same_host_city": [
+        {
+          "name": "ARTSY ROOM \u2014 A Small Private Gallery with a Bed",
+          "listing_url": "https://www.airbnb.com/rooms/16813276",
+          "minimum_nights": 3,
+          "maximum_nights": 90,
+          "listing_id": 16813276
+        },
+        {
+          "name": "Rose Bowl Treetop Suite with Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39200965",
+          "minimum_nights": 30,
+          "maximum_nights": 1125,
+          "listing_id": 39200965
+        },
+        {
+          "name": "Enchanting Room - French Charm with Desk & Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39201332",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 39201332
+        },
+        {
+          "name": "Rose Bowl Room, with Desk & Free Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39201521",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 39201521
+        },
+        {
+          "name": "FRENCHY HOUSE at the Pasadena Rose Bowl",
+          "listing_url": "https://www.airbnb.com/rooms/52786257",
+          "minimum_nights": 30,
+          "maximum_nights": 400,
+          "listing_id": 52786257
+        },
+        {
+          "name": "Rose Bowl Executive Suite",
+          "listing_url": "https://www.airbnb.com/rooms/871996520620554911",
+          "minimum_nights": 30,
+          "maximum_nights": 200,
+          "listing_id": 871996520620554911
+        },
+        {
+          "name": "Starry Night Nook, sleep inside a painting",
+          "listing_url": "https://www.airbnb.com/rooms/1672082671627126852",
+          "minimum_nights": 3,
+          "maximum_nights": 365,
+          "listing_id": 1672082671627126852
+        }
+      ],
+      "reviewer_id": 344318098,
+      "times_reviewed": 78,
+      "listing_id": 16651582,
+      "name": "A Sunlit Suite in a Storybook Home",
+      "listing_url": "https://www.airbnb.com/rooms/16651582",
+      "description": "Dear You,<br /><br />I don't know your name yet, or where you're flying in from, or what kind of week you've had \u2014 but I have a room for you, and I think you're going to like it.<br /><br />It's upstairs, in a hundred-year-old house on a quiet Pasadena street where the trees are old enough to remember things. The kind of street where the porch lights come on one by one in the evening like a slow, dignified applause. A welcome to a great many tired, happy people, and now it's your turn.<br /><br />SRH2023-00439",
+      "host_name": "Karilyn",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 3,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "David",
+      "other_listings_same_host_city": [
+        {
+          "name": "Cozy Room 2 in Pomona/Chino",
+          "listing_url": "https://www.airbnb.com/rooms/15759078",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 15759078
+        }
+      ],
+      "reviewer_id": 43829658,
+      "times_reviewed": 70,
+      "listing_id": 13708412,
+      "name": "Cozy Room 1 in Pomona/Chino",
+      "listing_url": "https://www.airbnb.com/rooms/13708412",
+      "description": "Read ALL details before requesting reservation:<br />Good for singles, couples and business travelers.<br />A second room is also available. See link in photos above.<br />Near 60/71 freeways<br />Minutes from Downtown Pomona night life and art district.<br />Home cooked meals available upon (advanced)request ($15 cash)<br />Less than one mile from Chino and Chino Hills<br />Please no animals, a family member is highly allergic.<br />Read ALL details and notes before reserving.",
+      "host_name": "Wendy",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Jonathan",
+      "other_listings_same_host_city": [
+        {
+          "name": "Stylish Private Room- Central LA!",
+          "listing_url": "https://www.airbnb.com/rooms/820678501965280233",
+          "minimum_nights": 1,
+          "maximum_nights": 90,
+          "listing_id": 820678501965280233
+        },
+        {
+          "name": "Brand New Room in Central LA- Close to Disneyland!",
+          "listing_url": "https://www.airbnb.com/rooms/820679946098097205",
+          "minimum_nights": 1,
+          "maximum_nights": 31,
+          "listing_id": 820679946098097205
+        },
+        {
+          "name": "Cozy Private Room- Very Central!",
+          "listing_url": "https://www.airbnb.com/rooms/820680823355258814",
+          "minimum_nights": 1,
+          "maximum_nights": 14,
+          "listing_id": 820680823355258814
+        }
+      ],
+      "reviewer_id": 401753440,
+      "times_reviewed": 63,
+      "listing_id": 735825180707760360,
+      "name": "Charming Master Room with en-suite- Central LA!",
+      "listing_url": "https://www.airbnb.com/rooms/735825180707760360",
+      "description": "Enjoy a stay in a modern cozy master bedroom with en suite and walk in closet. Only 20-30 minutes from all the best parts of Los Angeles; Disneyland, Downtown LA, Beach Cities, Hollywood, and LAX.<br /><br />Parking on premises and shared common area- kitchen, living room, dining room, and back patio.",
+      "host_name": "Jesse",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "J.",
+      "other_listings_same_host_city": [
+        {
+          "name": "Hacienda Height room at home Private and quiet",
+          "listing_url": "https://www.airbnb.com/rooms/28012443",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28012443
+        },
+        {
+          "name": "Hacienda Height room at home Quiet and comfortable",
+          "listing_url": "https://www.airbnb.com/rooms/28183497",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28183497
+        },
+        {
+          "name": "Hacienda Heights room in house Comfort convenience",
+          "listing_url": "https://www.airbnb.com/rooms/28317519",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28317519
+        },
+        {
+          "name": "hacienda heights room at home wide and bright",
+          "listing_url": "https://www.airbnb.com/rooms/38128520",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 38128520
+        }
+      ],
+      "reviewer_id": 221471768,
+      "times_reviewed": 49,
+      "listing_id": 27931123,
+      "name": "Hacienda Heights room with pravite bathroom",
+      "listing_url": "https://www.airbnb.com/rooms/27931123",
+      "description": "The room has a table lamp, an air conditioning, a heater. There are bus stops, large supermarkets, Shoping, restaurants, and gas stations nearby. Easy parking and 18 miles from Disney. 3 miles from Hsi Lai Temple.<br />Starting April 29, 2026, parking will be prohibited on the streets every Wednesday and Thursday from 7:00 a.m. to 11:00 a.m.",
+      "host_name": "\u2068Jisong &\u2069",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 180
+    },
+    {
+      "reviewer_name": "Kimberly",
+      "other_listings_same_host_city": [
+        {
+          "name": "Air-condition King bed ensuite private bathroom #4",
+          "listing_url": "https://www.airbnb.com/rooms/15815105",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 15815105
+        },
+        {
+          "name": "Air-conditioned, private bath, king bed.",
+          "listing_url": "https://www.airbnb.com/rooms/20231503",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 20231503
+        },
+        {
+          "name": "Vista Manor butterfly room, King bed/ private bath",
+          "listing_url": "https://www.airbnb.com/rooms/20555651",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 20555651
+        },
+        {
+          "name": "Air conditioned Guest Cottage at Vista Manor",
+          "listing_url": "https://www.airbnb.com/rooms/24780208",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 24780208
+        }
+      ],
+      "reviewer_id": 296794161,
+      "times_reviewed": 48,
+      "listing_id": 15272064,
+      "name": "Air conditioned queen bed ensuite bathroom.",
+      "listing_url": "https://www.airbnb.com/rooms/15272064",
+      "description": "Relax in room in this charming Tudor-style home located on nearly an acre of wooded grounds.  Convenient to Willamette  Salem Hospital, as well as many fine shops, restaurants, and brew pubs.  Excellent wineries abound in some of the most scenic landscapes you'll see anywhere.  We'd love to share our beautiful little corner of the world with you. If you are booking for Ironman, I will only accept 3 day reservations.",
+      "host_name": "Elizabeth",
+      "city": "Salem",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "May",
+        "June",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "May",
+        "June",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "Chris",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 21976258,
+      "times_reviewed": 45,
+      "listing_id": 1350302985638781976,
+      "name": "Cozy Guest House in Burbank",
+      "listing_url": "https://www.airbnb.com/rooms/1350302985638781976",
+      "description": "Private, Studio with kitchen and appliances.  Walk to Restaurants, Stores, and Studios.<br />Sorry, No Pets.",
+      "host_name": "Dave",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "February",
+        "March",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "February",
+        "March",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 365
+    },
+    {
+      "reviewer_name": "Chris",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 24050801,
+      "times_reviewed": 45,
+      "listing_id": 51708403,
+      "name": "Culver Coop 360\u00b0 -Guesthouse w/ Rooftop Deck",
+      "listing_url": "https://www.airbnb.com/rooms/51708403",
+      "description": "This is a newly built and beautifully finished guesthouse in a quiet neighborhood central to all the fun in Los Angeles. It is walking distance to downtown Culver City, dozens of great restaurants/bars, grocery stores and boutique shops. <br /><br />There is free street parking provided to guests. In addition, the LA Metro Expo rail line and buses are a short walk away. <br /><br />Gated access to the yard and stairs up to the apartment. You will have access to a roof-top patio with incredible 360 degree views.",
+      "host_name": "Jennifer",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 28
+    },
+    {
+      "reviewer_name": "David",
+      "other_listings_same_host_city": [
+        {
+          "name": "Cozy Room 1 in Pomona/Chino",
+          "listing_url": "https://www.airbnb.com/rooms/13708412",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 13708412
+        }
+      ],
+      "reviewer_id": 43829658,
+      "times_reviewed": 42,
+      "listing_id": 15759078,
+      "name": "Cozy Room 2 in Pomona/Chino",
+      "listing_url": "https://www.airbnb.com/rooms/15759078",
+      "description": "Read ALL details before requesting reservation:<br />Good for singles, couples and business travelers.<br />A second room is also available. See link in photos above.<br />Near 60/71 freeways<br />Minutes from Downtown Pomona night life and art district.<br />Home cooked meals available upon (advanced)request ($15 cash)<br />Less than one mile from Chino and Chino Hills<br />Portable fan and heater in room.<br />Please no animals, a family member is highly allergic.<br />Read ALL details and notes before reserving.",
+      "host_name": "Wendy",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Tess",
+      "other_listings_same_host_city": [
+        {
+          "name": "A Private Rm 3 w TV- Fullhouse",
+          "listing_url": "https://www.airbnb.com/rooms/21155405",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 21155405
+        },
+        {
+          "name": "A Private Rm2 w/ TV- Fullhouse",
+          "listing_url": "https://www.airbnb.com/rooms/21207196",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 21207196
+        },
+        {
+          "name": "A Private Rm4 w/TV-Fullhouse",
+          "listing_url": "https://www.airbnb.com/rooms/25046128",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25046128
+        },
+        {
+          "name": "Rm 1 w/ TV-Home Sweet Home",
+          "listing_url": "https://www.airbnb.com/rooms/25203705",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25203705
+        },
+        {
+          "name": "Room 2 - Home Sweet Home",
+          "listing_url": "https://www.airbnb.com/rooms/25204395",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25204395
+        },
+        {
+          "name": "Rm 3 w/TV-Home Sweet Home",
+          "listing_url": "https://www.airbnb.com/rooms/25204571",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25204571
+        },
+        {
+          "name": "Master BdRm w/TV - Home  Sweet Home",
+          "listing_url": "https://www.airbnb.com/rooms/29713910",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 29713910
+        },
+        {
+          "name": "A Private Rm 5 w/ TV",
+          "listing_url": "https://www.airbnb.com/rooms/38518994",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 38518994
+        },
+        {
+          "name": "A Private Rm 0 w/ TV",
+          "listing_url": "https://www.airbnb.com/rooms/826196700328524145",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 826196700328524145
+        },
+        {
+          "name": "A Cozy Room 0 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1443044266776229725",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1443044266776229725
+        },
+        {
+          "name": "A Cozy Master Bedroom 1 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1443774367166364032",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1443774367166364032
+        },
+        {
+          "name": "A Cozy Room 2 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1443782290708259279",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1443782290708259279
+        },
+        {
+          "name": "A Cozy Bedroom 3 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1445580052258863910",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445580052258863910
+        },
+        {
+          "name": "A Cozy Private Room 4 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1445941527413977126",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445941527413977126
+        },
+        {
+          "name": "A Cozy Private Room 6 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1445945666497801516",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445945666497801516
+        },
+        {
+          "name": "Master Bedroom near AntelopeValleyCollege",
+          "listing_url": "https://www.airbnb.com/rooms/1445949357326364806",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445949357326364806
+        },
+        {
+          "name": "A Cozy Bedroom5 in Lancaster near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1602547700605304092",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1602547700605304092
+        }
+      ],
+      "reviewer_id": 444456182,
+      "times_reviewed": 40,
+      "listing_id": 21478192,
+      "name": "A Private Rm 1 w TV- Fullhouse",
+      "listing_url": "https://www.airbnb.com/rooms/21478192",
+      "description": "This is a cozy private room in a very quiet, and safe area. There are many restaurants, coffee shops, stores... nearby to fulfill your every need especially close to AV College, AV Hospital\u2026. and an easy 10-15 drive to Palmdale.<br /><br />This room is next to the front door so sometimes it might get noisy from guests who are in and/or out of the house.<br /><br />Our Airbnb\u2019s listings primarily cater to working professional travelers and may not be ideal for vacationers.",
+      "host_name": "Nina",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Michael",
+      "other_listings_same_host_city": [
+        {
+          "name": "Home Away From Home,  Los Angeles, Orange County",
+          "listing_url": "https://www.airbnb.com/rooms/44166594",
+          "minimum_nights": 2,
+          "maximum_nights": 1125,
+          "listing_id": 44166594
+        }
+      ],
+      "reviewer_id": 120143530,
+      "times_reviewed": 38,
+      "listing_id": 30858845,
+      "name": "Cozy Bungalow with Private Patio /Whittier/ LA/OC",
+      "listing_url": "https://www.airbnb.com/rooms/30858845",
+      "description": "Great little Guest house with your own private entrance and your own patio. Super Clean. Smart TV. Nice kitchen,with coffee maker, toaster, Instant-pot and microwave. Induction stove top. Walk in shower. Comfy Queen Bed, A/C and Heat. Great for couple or individual, no pets, no Parties<br />12miles to Disneyland and 7miles to Knotts Berry Farm,  15-26 miles to Los Angeles and  Hollywood. 2miles to Biola University and  Whittier College, and Trendy Uptown Whittier. Hometown Of Richard Nixon.",
+      "host_name": "Martha",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Cindy",
+      "other_listings_same_host_city": [
+        {
+          "name": "1. Los Angeles suburb Hacienda Heights Beauty",
+          "listing_url": "https://www.airbnb.com/rooms/30269996",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 30269996
+        },
+        {
+          "name": "3. Los Angeles suburb Hacienda Heights Beauty",
+          "listing_url": "https://www.airbnb.com/rooms/32721769",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 32721769
+        },
+        {
+          "name": "Private Studio L.A. suburb Hacienda Heights Beauty",
+          "listing_url": "https://www.airbnb.com/rooms/32722664",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 32722664
+        },
+        {
+          "name": "2. Los Angeles suburb Hacienda Heights Beauty",
+          "listing_url": "https://www.airbnb.com/rooms/32722779",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 32722779
+        },
+        {
+          "name": "6. Los Angeles suburb Hacienda Heights Beauty",
+          "listing_url": "https://www.airbnb.com/rooms/38264834",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 38264834
+        },
+        {
+          "name": "8. Los Angeles suburb Hacienda Heights Beauty",
+          "listing_url": "https://www.airbnb.com/rooms/684036580616350472",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 684036580616350472
+        }
+      ],
+      "reviewer_id": 368817011,
+      "times_reviewed": 37,
+      "listing_id": 34535728,
+      "name": "5. Los Angeles suburb Hacienda Heights Beauty",
+      "listing_url": "https://www.airbnb.com/rooms/34535728",
+      "description": "Nice, clean room in a beautiful suburban home. Relax, stay in an affordable, quiet area, and explore Southern California! Close to many attractions. Save money by staying in the suburbs and Uber to our local attractions!",
+      "host_name": "Ricky",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 28
+    },
+    {
+      "reviewer_name": "Michael",
+      "other_listings_same_host_city": [
+        {
+          "name": "A Private Rm 3 w TV- Fullhouse",
+          "listing_url": "https://www.airbnb.com/rooms/21155405",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 21155405
+        },
+        {
+          "name": "A Private Rm2 w/ TV- Fullhouse",
+          "listing_url": "https://www.airbnb.com/rooms/21207196",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 21207196
+        },
+        {
+          "name": "A Private Rm 1 w TV- Fullhouse",
+          "listing_url": "https://www.airbnb.com/rooms/21478192",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 21478192
+        },
+        {
+          "name": "A Private Rm4 w/TV-Fullhouse",
+          "listing_url": "https://www.airbnb.com/rooms/25046128",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25046128
+        },
+        {
+          "name": "Rm 1 w/ TV-Home Sweet Home",
+          "listing_url": "https://www.airbnb.com/rooms/25203705",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25203705
+        },
+        {
+          "name": "Room 2 - Home Sweet Home",
+          "listing_url": "https://www.airbnb.com/rooms/25204395",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25204395
+        },
+        {
+          "name": "Rm 3 w/TV-Home Sweet Home",
+          "listing_url": "https://www.airbnb.com/rooms/25204571",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 25204571
+        },
+        {
+          "name": "A Private Rm 5 w/ TV",
+          "listing_url": "https://www.airbnb.com/rooms/38518994",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 38518994
+        },
+        {
+          "name": "A Private Rm 0 w/ TV",
+          "listing_url": "https://www.airbnb.com/rooms/826196700328524145",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 826196700328524145
+        },
+        {
+          "name": "A Cozy Room 0 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1443044266776229725",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1443044266776229725
+        },
+        {
+          "name": "A Cozy Master Bedroom 1 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1443774367166364032",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1443774367166364032
+        },
+        {
+          "name": "A Cozy Room 2 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1443782290708259279",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1443782290708259279
+        },
+        {
+          "name": "A Cozy Bedroom 3 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1445580052258863910",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445580052258863910
+        },
+        {
+          "name": "A Cozy Private Room 4 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1445941527413977126",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445941527413977126
+        },
+        {
+          "name": "A Cozy Private Room 6 near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1445945666497801516",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445945666497801516
+        },
+        {
+          "name": "Master Bedroom near AntelopeValleyCollege",
+          "listing_url": "https://www.airbnb.com/rooms/1445949357326364806",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1445949357326364806
+        },
+        {
+          "name": "A Cozy Bedroom5 in Lancaster near AVC",
+          "listing_url": "https://www.airbnb.com/rooms/1602547700605304092",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1602547700605304092
+        }
+      ],
+      "reviewer_id": 437319380,
+      "times_reviewed": 34,
+      "listing_id": 29713910,
+      "name": "Master BdRm w/TV - Home  Sweet Home",
+      "listing_url": "https://www.airbnb.com/rooms/29713910",
+      "description": "A master bedroom with an en-suite bathroom and a Calking-sized bed, new mattress, in a very quiet, safe area & well established highly desirable neighborhood. The house also has plenty of space on the driveway for parking. There are many restaurants, coffee shops, stores... nearby to fulfill your every need especially close to AV College, AV Hospital\u2026 and an easy 10-15 drive to Palmdale.<br />Our Airbnb\u2019s listings primarily cater to working professional travelers and may not be ideal for vacationers.",
+      "host_name": "Nina",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Thana",
+      "other_listings_same_host_city": [
+        {
+          "name": "3BR/2BA Near the BLVD - Parking, Laundry, Sleep 8",
+          "listing_url": "https://www.airbnb.com/rooms/625344223055305551",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 625344223055305551
+        },
+        {
+          "name": "Private Rm #2 with Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/730133275342548907",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 730133275342548907
+        },
+        {
+          "name": "Brand New 1 BR Guest House, Laundry, Gated Parking",
+          "listing_url": "https://www.airbnb.com/rooms/745248280987532447",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 745248280987532447
+        },
+        {
+          "name": "New 3 BR, Gated Parking, Sleep 8, Walk to BLVD",
+          "listing_url": "https://www.airbnb.com/rooms/745263314734819258",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 745263314734819258
+        },
+        {
+          "name": "Tranquil Guest House with Private Patio, Parking",
+          "listing_url": "https://www.airbnb.com/rooms/638716648697151922",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 638716648697151922
+        },
+        {
+          "name": "Hilltop Guest Suite with Private Yard and Views",
+          "listing_url": "https://www.airbnb.com/rooms/797528151310647441",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 797528151310647441
+        },
+        {
+          "name": "Private Rm #1 with Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/816224087110106164",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816224087110106164
+        },
+        {
+          "name": "Double Queen Rm w/ Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/816234725828306048",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816234725828306048
+        },
+        {
+          "name": "Former Model Home, 3 Car Garage, Gym, Sleep 14",
+          "listing_url": "https://www.airbnb.com/rooms/816379874436571594",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816379874436571594
+        },
+        {
+          "name": "Secluded Charming 3BR Retreat + Oversize Parking",
+          "listing_url": "https://www.airbnb.com/rooms/1122730893359746495",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1122730893359746495
+        },
+        {
+          "name": "1st Floor Room #1 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1279928666232402520",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1279928666232402520
+        },
+        {
+          "name": "Private Room #2 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1284252741159745821",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1284252741159745821
+        },
+        {
+          "name": "Private Room #3 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1284274975649927965",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1284274975649927965
+        },
+        {
+          "name": "Private Room #4 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287865089841807739",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287865089841807739
+        },
+        {
+          "name": "Master Suite + Bath in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287933316489386823",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287933316489386823
+        },
+        {
+          "name": "Private Room #7 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287945495978783853",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287945495978783853
+        },
+        {
+          "name": "Private Room #8 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1288103082775047404",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1288103082775047404
+        },
+        {
+          "name": "New Modern Guest House \u2022 Fast WiFi + Parking",
+          "listing_url": "https://www.airbnb.com/rooms/1567204243629232396",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1567204243629232396
+        },
+        {
+          "name": "1st Floor Room #9 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1613568951663582089",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1613568951663582089
+        },
+        {
+          "name": "Hilltop Sanctuary Guest Suite with Private Yard",
+          "listing_url": "https://www.airbnb.com/rooms/1683628887408513097",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1683628887408513097
+        }
+      ],
+      "reviewer_id": 447153348,
+      "times_reviewed": 33,
+      "listing_id": 730094779508811713,
+      "name": "Private Rm #3 with Kitchenette, Walk to Stores",
+      "listing_url": "https://www.airbnb.com/rooms/730094779508811713",
+      "description": "Welcome to our beautifully furnished private room centrally located in desirable College Terrace community about 0.9 mi or 3 min drive to Hwy 14!<br /><br />Whether you're here for work or just passing through, you will find everything you need right in your own room: fast wifi, computer desk, memory foam bed, big closet, fresh bedding / linens, disposable ear plug, water filter, mini kitchenette with snack bar, key to lock the room.<br /><br />This is a shoe free, drug free, non-smoking house.",
+      "host_name": "Daniel & Grace",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "March",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "March",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Tim",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 289968127,
+      "times_reviewed": 32,
+      "listing_id": 14873270,
+      "name": "Glendale Room, 4 Miles From Pasadena Rose Bowl",
+      "listing_url": "https://www.airbnb.com/rooms/14873270",
+      "description": "My place is 4.2 miles from the Rose Bowl, 2 miles from Art Center College of Design, and 6.2 miles from downtown Glendale. You'll have your own private bathroom, not shared. You\u2019ll love my place because of the location, the coziness, and quietness of the surrounding neighborhood. You will need your own car or usage of Uber or Lyft because public transportation is too far to walk from this suburban neighborhood My place is good for couples, solo adventurers, and business travelers.",
+      "host_name": "Jerry",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September",
+        "October"
+      ],
+      "minimum_nights": 2,
+      "maximum_nights": 730
+    },
+    {
+      "reviewer_name": "David",
+      "other_listings_same_host_city": [
+        {
+          "name": "Hacienda Heights room with pravite bathroom",
+          "listing_url": "https://www.airbnb.com/rooms/27931123",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 27931123
+        },
+        {
+          "name": "Hacienda Height room at home Private and quiet",
+          "listing_url": "https://www.airbnb.com/rooms/28012443",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28012443
+        },
+        {
+          "name": "Hacienda Heights room in house Comfort convenience",
+          "listing_url": "https://www.airbnb.com/rooms/28317519",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 28317519
+        },
+        {
+          "name": "hacienda heights room at home wide and bright",
+          "listing_url": "https://www.airbnb.com/rooms/38128520",
+          "minimum_nights": 1,
+          "maximum_nights": 180,
+          "listing_id": 38128520
+        }
+      ],
+      "reviewer_id": 43829658,
+      "times_reviewed": 30,
+      "listing_id": 28183497,
+      "name": "Hacienda Height room at home Quiet and comfortable",
+      "listing_url": "https://www.airbnb.com/rooms/28183497",
+      "description": "The room has a table lamp, an air conditioning, a heater. There are bus stops, large supermarkets, Shoping, restaurants, and gas stations nearby. Easy parking and 18 miles from Disney. 3 miles from Hsi Lai Temple.",
+      "host_name": "\u2068Jisong &\u2069",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 180
+    },
+    {
+      "reviewer_name": "Arturo",
+      "other_listings_same_host_city": [
+        {
+          "name": "Snuggly Apt in LB",
+          "listing_url": "https://www.airbnb.com/rooms/1280829979103537094",
+          "minimum_nights": 2,
+          "maximum_nights": 365,
+          "listing_id": 1280829979103537094
+        }
+      ],
+      "reviewer_id": 568003312,
+      "times_reviewed": 30,
+      "listing_id": 770498795368185074,
+      "name": "Cozy Guest House",
+      "listing_url": "https://www.airbnb.com/rooms/770498795368185074",
+      "description": "Beautiful guesthouse near USC/LA Live/Coliseum. Blueline Metro is 2 blocks away. It\u2019s own kitchen and living room. Beautiful lighting throughout the place. Clean sheets and towels await you after a tiring day of seeing the big city. Central to all freeways (110/10/105.) It is a great place for a family, weekend getaway, or a company trip.  Pots and utensils included Tv/ Roku, Fridge, stove ,towels, coffee maker, toaster,  and more. We created a smoke free. Parking included.",
+      "host_name": "Angel",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Fred",
+      "other_listings_same_host_city": [
+        {
+          "name": "A Sunlit Suite in a Storybook Home",
+          "listing_url": "https://www.airbnb.com/rooms/16651582",
+          "minimum_nights": 3,
+          "maximum_nights": 1125,
+          "listing_id": 16651582
+        },
+        {
+          "name": "Rose Bowl Treetop Suite with Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39200965",
+          "minimum_nights": 30,
+          "maximum_nights": 1125,
+          "listing_id": 39200965
+        },
+        {
+          "name": "Enchanting Room - French Charm with Desk & Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39201332",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 39201332
+        },
+        {
+          "name": "Rose Bowl Room, with Desk & Free Parking",
+          "listing_url": "https://www.airbnb.com/rooms/39201521",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 39201521
+        },
+        {
+          "name": "FRENCHY HOUSE at the Pasadena Rose Bowl",
+          "listing_url": "https://www.airbnb.com/rooms/52786257",
+          "minimum_nights": 30,
+          "maximum_nights": 400,
+          "listing_id": 52786257
+        },
+        {
+          "name": "Rose Bowl Executive Suite",
+          "listing_url": "https://www.airbnb.com/rooms/871996520620554911",
+          "minimum_nights": 30,
+          "maximum_nights": 200,
+          "listing_id": 871996520620554911
+        },
+        {
+          "name": "Starry Night Nook, sleep inside a painting",
+          "listing_url": "https://www.airbnb.com/rooms/1672082671627126852",
+          "minimum_nights": 3,
+          "maximum_nights": 365,
+          "listing_id": 1672082671627126852
+        }
+      ],
+      "reviewer_id": 107488231,
+      "times_reviewed": 30,
+      "listing_id": 16813276,
+      "name": "ARTSY ROOM \u2014 A Small Private Gallery with a Bed",
+      "listing_url": "https://www.airbnb.com/rooms/16813276",
+      "description": "Three women watch over the bed -- painted by Yetta Balzar, a Pasadena artist whose colors don't apologize \u2014 pinks that show up early, oranges that overstay their welcome, reds that refuse to be quiet. They hang above the headboard, a small chorus of muses, and on your first night here you will look up at them and understand what kind of room you're in.<br /><br />This is a room for people who love color. Who love art. Who believe \u2014 correctly \u2014 that what hangs above your bed matters.<br /><br /><br /><br />SRH2023-00439",
+      "host_name": "Karilyn",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 3,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "Angelina",
+      "other_listings_same_host_city": [
+        {
+          "name": "\u53ef\u7368\u7acb\u9032\u51fa -\u7368\u7acb\u7a7a\u8abf- \u5f8c\u9662\u514d\u8cbb\u505c\u8eca Room C",
+          "listing_url": "https://www.airbnb.com/rooms/40177758",
+          "minimum_nights": 1,
+          "maximum_nights": 70,
+          "listing_id": 40177758
+        },
+        {
+          "name": "\u7368\u7acb\u7a7a\u8abf-\u5f8c\u9662\u8eca\u9053\u514d\u8cbb\u505c\u8eca-Room A",
+          "listing_url": "https://www.airbnb.com/rooms/1282390284427601049",
+          "minimum_nights": 1,
+          "maximum_nights": 50,
+          "listing_id": 1282390284427601049
+        },
+        {
+          "name": "\u5317 Monterey park-\u4e8c\u6a13Room 3#",
+          "listing_url": "https://www.airbnb.com/rooms/1561689055243660371",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1561689055243660371
+        },
+        {
+          "name": "\u5317 Monterey Park-\u4e8c\u6a13Room 1#",
+          "listing_url": "https://www.airbnb.com/rooms/1507410994665246578",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1507410994665246578
+        },
+        {
+          "name": "\u5317 Monterey park \u7368\u7acb\u7a7a\u8abf-Room 1A",
+          "listing_url": "https://www.airbnb.com/rooms/1507757080211791740",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1507757080211791740
+        },
+        {
+          "name": "\u5317 monterey park-\u4e8c\u6a13 Room 2#",
+          "listing_url": "https://www.airbnb.com/rooms/1507761050048640900",
+          "minimum_nights": 2,
+          "maximum_nights": 60,
+          "listing_id": 1507761050048640900
+        },
+        {
+          "name": "\u7368\u68df\u5225\u5885-\u4e8c\u6a13Room 2F",
+          "listing_url": "https://www.airbnb.com/rooms/1741895375603330100",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1741895375603330100
+        },
+        {
+          "name": "\u7368\u68df\u5225\u5885-\u4e8c\u6a13Room 2G",
+          "listing_url": "https://www.airbnb.com/rooms/1741896788725773594",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1741896788725773594
+        },
+        {
+          "name": "\u4e8c\u500b\u5927\u5e8a-\u79c1\u4eba\u7368\u7acb\u6d74\u5ba4 \u4e8c\u6a13Room 2D",
+          "listing_url": "https://www.airbnb.com/rooms/1741898217439692186",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1741898217439692186
+        },
+        {
+          "name": "\u7368\u68df\u5225\u5885 - Room 1B",
+          "listing_url": "https://www.airbnb.com/rooms/1742359265112512136",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1742359265112512136
+        },
+        {
+          "name": "\u7368\u7acb\u5225\u5885-Room 1C",
+          "listing_url": "https://www.airbnb.com/rooms/1742360775615843898",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1742360775615843898
+        },
+        {
+          "name": "\u7368\u68df\u5225\u5885-\u4e8c\u500b\u5927\u5e8a-1H",
+          "listing_url": "https://www.airbnb.com/rooms/1742656654889105326",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1742656654889105326
+        },
+        {
+          "name": "\u4e8c\u500b\u623f\u9593-\u4e8c\u500b\u5e8a-\u7368\u7acb\u7a7a\u8abf-Room 1A",
+          "listing_url": "https://www.airbnb.com/rooms/1746552372404110010",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1746552372404110010
+        },
+        {
+          "name": "Rosmead Detached Villa - Room 2E",
+          "listing_url": "https://www.airbnb.com/rooms/1750935462529062766",
+          "minimum_nights": 1,
+          "maximum_nights": 60,
+          "listing_id": 1750935462529062766
+        }
+      ],
+      "reviewer_id": 493042538,
+      "times_reviewed": 28,
+      "listing_id": 37498998,
+      "name": "\u7368\u7acb\u7a7a\u8abf-\u5f8c\u9662\u8eca\u9053\u514d\u8cbb\u505c\u8eca-Room B",
+      "listing_url": "https://www.airbnb.com/rooms/37498998",
+      "description": "Clean bright and comfortable <br />Kitchen can be cooked<br />Cookware provided, utensils, refrigerator<br />Shared toilet<br />Free Washing Machine Dryer <br />There is free parking in the driveway in the backyard<br />Located in the Chinese area of San Gabriel Valley<br />There are many Chinese supermarkets and restaurants in the surrounding area<br />Near Highway 10<br />Transportation is convenient and convenient for living",
+      "host_name": "Nina",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 60
+    },
+    {
+      "reviewer_name": "Thana",
+      "other_listings_same_host_city": [
+        {
+          "name": "3BR/2BA Near the BLVD - Parking, Laundry, Sleep 8",
+          "listing_url": "https://www.airbnb.com/rooms/625344223055305551",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 625344223055305551
+        },
+        {
+          "name": "Private Rm #3 with Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/730094779508811713",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 730094779508811713
+        },
+        {
+          "name": "Private Rm #2 with Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/730133275342548907",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 730133275342548907
+        },
+        {
+          "name": "Brand New 1 BR Guest House, Laundry, Gated Parking",
+          "listing_url": "https://www.airbnb.com/rooms/745248280987532447",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 745248280987532447
+        },
+        {
+          "name": "New 3 BR, Gated Parking, Sleep 8, Walk to BLVD",
+          "listing_url": "https://www.airbnb.com/rooms/745263314734819258",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 745263314734819258
+        },
+        {
+          "name": "Tranquil Guest House with Private Patio, Parking",
+          "listing_url": "https://www.airbnb.com/rooms/638716648697151922",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 638716648697151922
+        },
+        {
+          "name": "Hilltop Guest Suite with Private Yard and Views",
+          "listing_url": "https://www.airbnb.com/rooms/797528151310647441",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 797528151310647441
+        },
+        {
+          "name": "Double Queen Rm w/ Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/816234725828306048",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816234725828306048
+        },
+        {
+          "name": "Former Model Home, 3 Car Garage, Gym, Sleep 14",
+          "listing_url": "https://www.airbnb.com/rooms/816379874436571594",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816379874436571594
+        },
+        {
+          "name": "Secluded Charming 3BR Retreat + Oversize Parking",
+          "listing_url": "https://www.airbnb.com/rooms/1122730893359746495",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1122730893359746495
+        },
+        {
+          "name": "1st Floor Room #1 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1279928666232402520",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1279928666232402520
+        },
+        {
+          "name": "Private Room #2 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1284252741159745821",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1284252741159745821
+        },
+        {
+          "name": "Private Room #3 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1284274975649927965",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1284274975649927965
+        },
+        {
+          "name": "Private Room #4 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287865089841807739",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287865089841807739
+        },
+        {
+          "name": "Master Suite + Bath in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287933316489386823",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287933316489386823
+        },
+        {
+          "name": "Private Room #7 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287945495978783853",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287945495978783853
+        },
+        {
+          "name": "Private Room #8 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1288103082775047404",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1288103082775047404
+        },
+        {
+          "name": "New Modern Guest House \u2022 Fast WiFi + Parking",
+          "listing_url": "https://www.airbnb.com/rooms/1567204243629232396",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1567204243629232396
+        },
+        {
+          "name": "1st Floor Room #9 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1613568951663582089",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1613568951663582089
+        },
+        {
+          "name": "Hilltop Sanctuary Guest Suite with Private Yard",
+          "listing_url": "https://www.airbnb.com/rooms/1683628887408513097",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1683628887408513097
+        }
+      ],
+      "reviewer_id": 447153348,
+      "times_reviewed": 28,
+      "listing_id": 816224087110106164,
+      "name": "Private Rm #1 with Kitchenette, Walk to Stores",
+      "listing_url": "https://www.airbnb.com/rooms/816224087110106164",
+      "description": "Welcome to our beautifully furnished private room centrally located in desirable College Terrace community about 0.9 mi or 3 min drive to Hwy 14!<br /><br />Whether you're here for work or just passing through, you will find everything you need right in your own room: fast wifi, computer desk, memory foam bed, big closet, fresh bedding / linens, disposable ear plug, water filter, mini kitchenette with snack bar, key to lock the room.<br /><br />This is a shoe free, drug free, non-smoking house.",
+      "host_name": "Daniel & Grace",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "April",
+        "May",
+        "June",
+        "July",
+        "September",
+        "October",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "April",
+        "May",
+        "June",
+        "July",
+        "September",
+        "October",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Elizabeth",
+      "other_listings_same_host_city": [
+        {
+          "name": "Cute Private room in Baldwin park area",
+          "listing_url": "https://www.airbnb.com/rooms/1145203125356775889",
+          "minimum_nights": 7,
+          "maximum_nights": 1125,
+          "listing_id": 1145203125356775889
+        },
+        {
+          "name": "Cozy private  bedroom in Neighborhood Los Angeles",
+          "listing_url": "https://www.airbnb.com/rooms/1184579348111065594",
+          "minimum_nights": 14,
+          "maximum_nights": 1125,
+          "listing_id": 1184579348111065594
+        },
+        {
+          "name": "Private bed room D\u3002in Quiet area",
+          "listing_url": "https://www.airbnb.com/rooms/1337861254023458660",
+          "minimum_nights": 2,
+          "maximum_nights": 360,
+          "listing_id": 1337861254023458660
+        },
+        {
+          "name": "Tiny room, nice n quiet in Baldwin park area.",
+          "listing_url": "https://www.airbnb.com/rooms/1658304887093352085",
+          "minimum_nights": 7,
+          "maximum_nights": 365,
+          "listing_id": 1658304887093352085
+        }
+      ],
+      "reviewer_id": 582313638,
+      "times_reviewed": 27,
+      "listing_id": 1147771285516112466,
+      "name": "Private room 3, quiet area in Baldwin park.",
+      "listing_url": "https://www.airbnb.com/rooms/1147771285516112466",
+      "description": "Take a break and unwind at this peaceful oasis.<br />Nice n quiet neighborhood.",
+      "host_name": "Nattawat",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 7,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "Haydee",
+      "other_listings_same_host_city": [
+        {
+          "name": "4 Nice room /full size bed /share bathroom",
+          "listing_url": "https://www.airbnb.com/rooms/918450043185532744",
+          "minimum_nights": 1,
+          "maximum_nights": 90,
+          "listing_id": 918450043185532744
+        },
+        {
+          "name": "0 Cute Queen bedroom/no windows/shared  bathroom",
+          "listing_url": "https://www.airbnb.com/rooms/918836805437617147",
+          "minimum_nights": 1,
+          "maximum_nights": 90,
+          "listing_id": 918836805437617147
+        },
+        {
+          "name": "1 Fresh Master room & private bathroom/",
+          "listing_url": "https://www.airbnb.com/rooms/919522883706418174",
+          "minimum_nights": 1,
+          "maximum_nights": 90,
+          "listing_id": 919522883706418174
+        },
+        {
+          "name": "5 Nice room/free parking/share bathroom",
+          "listing_url": "https://www.airbnb.com/rooms/919672796569704388",
+          "minimum_nights": 1,
+          "maximum_nights": 90,
+          "listing_id": 919672796569704388
+        },
+        {
+          "name": "3Fresh master bedroom/TV/private bath/free parking",
+          "listing_url": "https://www.airbnb.com/rooms/915565119170846352",
+          "minimum_nights": 1,
+          "maximum_nights": 90,
+          "listing_id": 915565119170846352
+        }
+      ],
+      "reviewer_id": 475249365,
+      "times_reviewed": 27,
+      "listing_id": 930560342694164271,
+      "name": "2 Bright Q bedroom/quiet/shared bathroom",
+      "listing_url": "https://www.airbnb.com/rooms/930560342694164271",
+      "description": "This single family house in safe community, quiet neighborhood .Here have six rooms for rent on Airbnb. <br />There have Two shared bathrooms and two private bathroom. Two large living rooms bring you more spacious activity space.<br /><br />Only 12 miles from Disneyland, Anaheim ,25 minutes drive. <br />Only 7.6 miles from Brea mall, 15 minutes drive.",
+      "host_name": "Ping",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "Jonathan",
+      "other_listings_same_host_city": [
+        {
+          "name": "Monrovia Cozy Comfort: Private Room Wi-Fi Parking",
+          "listing_url": "https://www.airbnb.com/rooms/850027394611217458",
+          "minimum_nights": 2,
+          "maximum_nights": 1125,
+          "listing_id": 850027394611217458
+        },
+        {
+          "name": "Private Entrance Guest Space Conveniently located",
+          "listing_url": "https://www.airbnb.com/rooms/856792856949908404",
+          "minimum_nights": 3,
+          "maximum_nights": 1125,
+          "listing_id": 856792856949908404
+        }
+      ],
+      "reviewer_id": 545590894,
+      "times_reviewed": 26,
+      "listing_id": 845933147452538032,
+      "name": "Lovely Private room in Monrovia",
+      "listing_url": "https://www.airbnb.com/rooms/845933147452538032",
+      "description": "Private bedroom with lock on bedroom doors.<br /><br />Shared space:<br />two bathrooms/living room/kitchenette (fridge/microwave/induction cooktop/coffee maker)<br /><br />Less than a mile from 210 freeway and Metro A Line: Monrovia Station<br /><br />Close to Monrovia old town, Santa Anita race track and City of Hope<br /><br />Trader joe\u2019s and Sprouts, along with many restaurants within half mile.",
+      "host_name": "Chewei",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 200
+    },
+    {
+      "reviewer_name": "Hector",
+      "other_listings_same_host_city": [
+        {
+          "name": "Cozy Room 1 in Pomona/Chino",
+          "listing_url": "https://www.airbnb.com/rooms/13708412",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 13708412
+        }
+      ],
+      "reviewer_id": 482905018,
+      "times_reviewed": 26,
+      "listing_id": 15759078,
+      "name": "Cozy Room 2 in Pomona/Chino",
+      "listing_url": "https://www.airbnb.com/rooms/15759078",
+      "description": "Read ALL details before requesting reservation:<br />Good for singles, couples and business travelers.<br />A second room is also available. See link in photos above.<br />Near 60/71 freeways<br />Minutes from Downtown Pomona night life and art district.<br />Home cooked meals available upon (advanced)request ($15 cash)<br />Less than one mile from Chino and Chino Hills<br />Portable fan and heater in room.<br />Please no animals, a family member is highly allergic.<br />Read ALL details and notes before reserving.",
+      "host_name": "Wendy",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Rolando",
+      "other_listings_same_host_city": [
+        {
+          "name": "Private Room 2 - Albret St. (Downstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/38519905",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 38519905
+        },
+        {
+          "name": "Private Room 1 - Albret St. (Downstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/38520114",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 38520114
+        },
+        {
+          "name": "Private Room 4 - Albret St. (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/38520366",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 38520366
+        },
+        {
+          "name": "Private Room 5 - Albret St. (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/38520444",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 38520444
+        },
+        {
+          "name": "Private R.2_Windsor (Downstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1075021823223268464",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1075021823223268464
+        },
+        {
+          "name": "Private Masterbed Room 5_Windsor (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1076465906377153529",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1076465906377153529
+        },
+        {
+          "name": "Private Room 4_Windsor (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1077695645237756446",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1077695645237756446
+        },
+        {
+          "name": "Private R.3_ Windsor (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1077757889756806307",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1077757889756806307
+        },
+        {
+          "name": "Private Room 1 - Ravencrest",
+          "listing_url": "https://www.airbnb.com/rooms/1144486375428198692",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1144486375428198692
+        },
+        {
+          "name": "Private Room 5_Ravencrest",
+          "listing_url": "https://www.airbnb.com/rooms/1146781060239664850",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1146781060239664850
+        },
+        {
+          "name": "Private Room 2_Ravencrest",
+          "listing_url": "https://www.airbnb.com/rooms/1147265461496887846",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1147265461496887846
+        },
+        {
+          "name": "Private Room 4_Ravencrest",
+          "listing_url": "https://www.airbnb.com/rooms/1147954848961220984",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1147954848961220984
+        },
+        {
+          "name": "Private Masterbed Room3_Ravencrest",
+          "listing_url": "https://www.airbnb.com/rooms/1149401709318851938",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1149401709318851938
+        },
+        {
+          "name": "Private R1-StillMeadow (Downstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1690321090147665764",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1690321090147665764
+        },
+        {
+          "name": "Private R2-StillMeadow (Downstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1690843243989115939",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1690843243989115939
+        },
+        {
+          "name": "Private R4-StillMeadow (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1693074125702112651",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1693074125702112651
+        },
+        {
+          "name": "Private R6-StillMeadow (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1695876885313920899",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1695876885313920899
+        },
+        {
+          "name": "Private R5-StillMeadow (Upstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1695922573235949857",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1695922573235949857
+        },
+        {
+          "name": "Private R3_StillMeadow (Downstairs)",
+          "listing_url": "https://www.airbnb.com/rooms/1688551420475802675",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1688551420475802675
+        }
+      ],
+      "reviewer_id": 358934330,
+      "times_reviewed": 26,
+      "listing_id": 38520274,
+      "name": "Private Room 3 - Albret St. (Upstairs)",
+      "listing_url": "https://www.airbnb.com/rooms/38520274",
+      "description": "This is a cozy private room with a walk-in closet in a very quiet, safe area & well established highly desirable neighborhood. We've have many restaurants, coffee shops, stores... nearby to fulfill your every need especially close to AV College, AV Hospital\u2026. and an easy 10-15 mins drive to Palmdale.",
+      "host_name": "Hung",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 365
+    },
+    {
+      "reviewer_name": "Brett",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 2652510,
+      "times_reviewed": 26,
+      "listing_id": 10195383,
+      "name": "Quaint Yet Modern Guest Studio-Ideal for 2 Guests",
+      "listing_url": "https://www.airbnb.com/rooms/10195383",
+      "description": "We live in a quiet & quaint neighborhood in Glendale's Woodbury area.  Our home is a Tudor style with interiors decorated with modern & clean-line furniture, including the guest studio.  The guest studio is approximately 400 sq ft with a kitchen.   It is a quaint space for a staycation.  It is centrally located.  Kindly read the narratives before booking. You also must be a dog lover, we have 2 Labradoodles.",
+      "host_name": "Suzette Major",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 3,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "Aleksandra",
+      "other_listings_same_host_city": [
+        {
+          "name": "\u534e\u4eba\u533a\u4e2d\u5fc3\u8c6a\u534e\u4e3b\u5367\u5957\u623fLuxury Private bathroom w/Free parking",
+          "listing_url": "https://www.airbnb.com/rooms/50650878",
+          "minimum_nights": 2,
+          "maximum_nights": 1125,
+          "listing_id": 50650878
+        },
+        {
+          "name": "private room & free parking Alhambra\u534e\u4eba\u533a\u7cbe\u54c1\u96c5\u623f\u6b65\u884c\u8d85\u5e02\u8f66\u7ad9",
+          "listing_url": "https://www.airbnb.com/rooms/50651881",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 50651881
+        },
+        {
+          "name": "Alhambra cozy private room \u6e29\u99a8\u96c5\u623f",
+          "listing_url": "https://www.airbnb.com/rooms/50652091",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 50652091
+        },
+        {
+          "name": "Cozy private room in Alhambra Downtown\u534e\u4eba\u533a\u4e2d\u5fc3\u96c5\u623f",
+          "listing_url": "https://www.airbnb.com/rooms/50652096",
+          "minimum_nights": 1,
+          "maximum_nights": 20,
+          "listing_id": 50652096
+        }
+      ],
+      "reviewer_id": 572035103,
+      "times_reviewed": 25,
+      "listing_id": 49541759,
+      "name": "New modern private room in Alhambra Downtown\u8212\u9002\u5168\u65b0\u96c5\u623f",
+      "listing_url": "https://www.airbnb.com/rooms/49541759",
+      "description": "Central air conditioning/heating, always-on ozone HEPA air filter. Newly furnished with queen size beds, hypoallergenic pillow covers, and egyptian cotton towels. Walking distance to many popular businesses on Main Street. Including noodles shops,cafes, restaurants, bars,movie theater,pharmacies,western and Asian grocery stores.",
+      "host_name": "Jianjun",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "October",
+        "November"
+      ],
+      "available_again_in": [
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "October",
+        "November"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Josh",
+      "other_listings_same_host_city": [
+        {
+          "name": "Glendale Private Two Bed",
+          "listing_url": "https://www.airbnb.com/rooms/48150053",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 48150053
+        },
+        {
+          "name": "Glendale Private Two Bed with sofa Bed",
+          "listing_url": "https://www.airbnb.com/rooms/53069211",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 53069211
+        }
+      ],
+      "reviewer_id": 222211942,
+      "times_reviewed": 25,
+      "listing_id": 49113289,
+      "name": "Glendale Private One King Bed",
+      "listing_url": "https://www.airbnb.com/rooms/49113289",
+      "description": "Glenridge Inn puts customers first. That\u2019s why they have first-rate amenities to make your stay relaxing, memorable, and fun. Enjoy the free WiFi, microwave, refrigerator, television, hairdry and laundry. All rooms are air-conditioned, spacious, and fresh. The bathrooms are clean and well-stocked with towels, linens, soap, shampoo and parking for 1 car",
+      "host_name": "Glenridge Inn",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Ahmad",
+      "other_listings_same_host_city": [
+        {
+          "name": "Paradise Basement entire house.",
+          "listing_url": "https://www.airbnb.com/rooms/623983497251900795",
+          "minimum_nights": 2,
+          "maximum_nights": 365,
+          "listing_id": 623983497251900795
+        },
+        {
+          "name": "More than five stars hotel.with Private bathroom.",
+          "listing_url": "https://www.airbnb.com/rooms/628202912314539345",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 628202912314539345
+        },
+        {
+          "name": "Perfect Retreat",
+          "listing_url": "https://www.airbnb.com/rooms/673484120312585648",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 673484120312585648
+        },
+        {
+          "name": "Heaven on Earth Basement luxury",
+          "listing_url": "https://www.airbnb.com/rooms/867761913106641727",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 867761913106641727
+        },
+        {
+          "name": "Dream Basement attached bathroom",
+          "listing_url": "https://www.airbnb.com/rooms/867981360593350366",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 867981360593350366
+        },
+        {
+          "name": "Basement Hideout",
+          "listing_url": "https://www.airbnb.com/rooms/1099776424534841898",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1099776424534841898
+        },
+        {
+          "name": "Relax in Basement",
+          "listing_url": "https://www.airbnb.com/rooms/1197145744012030562",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1197145744012030562
+        },
+        {
+          "name": "Charming South Retreat",
+          "listing_url": "https://www.airbnb.com/rooms/1454781016225975143",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1454781016225975143
+        },
+        {
+          "name": "Home away from Home",
+          "listing_url": "https://www.airbnb.com/rooms/1652089407439607427",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1652089407439607427
+        }
+      ],
+      "reviewer_id": 101455077,
+      "times_reviewed": 25,
+      "listing_id": 627040863803737509,
+      "name": "Stunning Sanctuary Room.",
+      "listing_url": "https://www.airbnb.com/rooms/627040863803737509",
+      "description": "Relax with the whole family at this peaceful place to stay.   This room has everything you are looking for in yo short  stay .this room has shared bathroom with only one guest and you that makes two,<br />Every room comes with ,Free  Wi-Fi, TV, Mini Fridge in each room,&  Big large  refrigerator in kitchen.& that comes with full laundry and Kitchen& each room personal lock",
+      "host_name": "Chris",
+      "city": "Salem",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 365
+    },
+    {
+      "reviewer_name": "Pamela",
+      "other_listings_same_host_city": [
+        {
+          "name": "Spacious Bedroom w/Private Bathroom in Shared Home",
+          "listing_url": "https://www.airbnb.com/rooms/11583565",
+          "minimum_nights": 5,
+          "maximum_nights": 365,
+          "listing_id": 11583565
+        },
+        {
+          "name": "Cozy Bedroom with Private Bathroom in Shared Home",
+          "listing_url": "https://www.airbnb.com/rooms/11609642",
+          "minimum_nights": 5,
+          "maximum_nights": 365,
+          "listing_id": 11609642
+        }
+      ],
+      "reviewer_id": 497927243,
+      "times_reviewed": 24,
+      "listing_id": 43690220,
+      "name": "Front Bedroom w/Private Bathroom in Shared Home",
+      "listing_url": "https://www.airbnb.com/rooms/43690220",
+      "description": "5 day minimum stay, Front Bedroom w/private bath in shared home, near Old Town Monrovia, keyless self check in, queen size bed, smart TV, dresser, desk, use of common areas (kitchen, dining, living, laundry room), assigned refrigerator space & kitchen cabinets, WIFI, area books, posters & pamphlets, safe street parking but observe street cleaning signs, park on house side on Mon morning & opposite side on Tues morning otherwise it doesn't matter, max 2 guests, no smoking, parties, pets or pot.",
+      "host_name": "Todd",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "September"
+      ],
+      "minimum_nights": 5,
+      "maximum_nights": 350
+    },
+    {
+      "reviewer_name": "Marjorie",
+      "other_listings_same_host_city": [
+        {
+          "name": "Casa De Coronado - Private Room",
+          "listing_url": "https://www.airbnb.com/rooms/35433000",
+          "minimum_nights": 2,
+          "maximum_nights": 1125,
+          "listing_id": 35433000
+        },
+        {
+          "name": "2 Rooms - 1 Garden Home Stay",
+          "listing_url": "https://www.airbnb.com/rooms/756861769024754542",
+          "minimum_nights": 3,
+          "maximum_nights": 1125,
+          "listing_id": 756861769024754542
+        },
+        {
+          "name": "ECHO RETREAT_Historical LA Cabin",
+          "listing_url": "https://www.airbnb.com/rooms/1190098968670384585",
+          "minimum_nights": 1,
+          "maximum_nights": 30,
+          "listing_id": 1190098968670384585
+        }
+      ],
+      "reviewer_id": 427533501,
+      "times_reviewed": 24,
+      "listing_id": 35432998,
+      "name": "Greatest place to call home for now",
+      "listing_url": "https://www.airbnb.com/rooms/35432998",
+      "description": "Beautiful Spanish 1926 home. Lovely Private yard w rooftop deck, large front porch. <br />Quiet Glendale neighborhood<br />Super easy access to fwy/bus routes. <br />Close to all Film Studios. Close to Downtown LA Pasadena Burbank Hollywood North Hollywood.<br />Near The Americana Mall, Whole Foods,Trader Joes,Rite Aid, Vons\u2019s. Brand St\u2019s stores and tons or restaurants.<br />If the dates you are requiring show unavailable PLEASE inquire. I will see if I can arrange or check my other listing @ https://abnb.me/oELDxm8Jz0",
+      "host_name": "Karen",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 2,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Ronald",
+      "other_listings_same_host_city": [
+        {
+          "name": "Luxury 5 Star DTLA/FreeParking/KingBed/420/BigPool",
+          "listing_url": "https://www.airbnb.com/rooms/673394367143383881",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 673394367143383881
+        }
+      ],
+      "reviewer_id": 692109722,
+      "times_reviewed": 24,
+      "listing_id": 1284524616493534648,
+      "name": "HUGE Penthouse King Bed Downtown LA 420/PS4/NBAJam",
+      "listing_url": "https://www.airbnb.com/rooms/1284524616493534648",
+      "description": "Apartment is in DOWNTOWN LOS ANGELES, on 6th and Spring St. <br />**It is not located in Ramona Gardens!** you will get address after booking! <br />\u2022 Huge Loft with 20ft high ceilings <br />\u2022 We are PET friendly and 420 friendly<br />\u2022 Right in the heart of Downtown Los Angeles <br />\u2022 Any Unauthorized Parties/Group Gatherings Will Be Charged $500.00<br />\u2022 Multiple parking lots on the same block as apartment. Parking fee varies by each parking lot, but much cheaper than what the average DTLA hotel charges!",
+      "host_name": "Drew",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 365
+    },
+    {
+      "reviewer_name": "Lisa",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 90888203,
+      "times_reviewed": 24,
+      "listing_id": 14265480,
+      "name": "Garden Retreat, Private, View",
+      "listing_url": "https://www.airbnb.com/rooms/14265480",
+      "description": "Your secret Garden Retreat in LA. Perfectly located. This retreat's outdoor space and light welcomes you to relax.  Direct access to all major attractions: Downtown & Staples Center, Hollywood & Universal City, Disneyland, Beaches, Mountains, Airports, Museums. Minutes from  Hiking Trails and City of Industry Business Hub. Great for business travelers, solo adventurers, or couples. PLUS: You may request a yummy fresh&organic breakfast any day for$30/single $50/couple. Your Secret  Retreat in LA!",
+      "host_name": "Rich",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "September"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "Demetri",
+      "other_listings_same_host_city": [
+        {
+          "name": "\u4ef7\u5ec9\u7269\u7f8e 004",
+          "listing_url": "https://www.airbnb.com/rooms/22860827",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 22860827
+        },
+        {
+          "name": "\u7269\u7f8e\u4ef7\u5ec9 0003",
+          "listing_url": "https://www.airbnb.com/rooms/38064592",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 38064592
+        },
+        {
+          "name": "\u7269\u7f8e\u4ef7\u5ec9002",
+          "listing_url": "https://www.airbnb.com/rooms/594316590162885519",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 594316590162885519
+        }
+      ],
+      "reviewer_id": 318231110,
+      "times_reviewed": 23,
+      "listing_id": 21178869,
+      "name": "\u7269\u7f8e\u4ef7\u5ec9 001",
+      "listing_url": "https://www.airbnb.com/rooms/21178869",
+      "description": "The house is located on the north side of Exit 46 of Highway 10, which is convenient for transportation.There are several bus stops nearby, Pomona Hospital and Senior High School, Uma and McDonald's, and a small supermarket within a few minutes walking distance.There are multiple parking spaces in the courtyard, and vehicles can be parked 24 hours by the roadside in the front yard.The room has a 1,5 meter double bed, a desk, chairs, a bedside table, and a small refrigerator.Ceiling fan (no air conditioning).There is a microwave and an electric oven is available in the dining room.Cameras have been installed in the front yard and garage and all public access, and the cameras are on for 24 hours.",
+      "host_name": "\u80e1\u5148\u751f",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "December"
+      ],
+      "available_again_in": [
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "James",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 405734934,
+      "times_reviewed": 23,
+      "listing_id": 49740270,
+      "name": "Gorgeous Nest: Exclusive Suite Modern & Beautiful",
+      "listing_url": "https://www.airbnb.com/rooms/49740270",
+      "description": "A lovely space to unwind and relax after a busy day whether it is work or play. This unit is not shared so you can enjoy the whole unit to yourself with in unit washer and dryer. Indulge in the comfort and tranquility of this contemporary unit with stark contrasts, wood surfaces, tasteful furnishings and decor. Take in the peaceful surroundings from the cute yard.",
+      "host_name": "Eli",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 3,
+      "maximum_nights": 90
+    },
+    {
+      "reviewer_name": "Lyon",
+      "other_listings_same_host_city": [
+        {
+          "name": "[2-4] USC, DTLA Private Bedroom",
+          "listing_url": "https://www.airbnb.com/rooms/52903516",
+          "minimum_nights": 30,
+          "maximum_nights": 1125,
+          "listing_id": 52903516
+        },
+        {
+          "name": "[5-4] USC, DTLA Private Bedroom",
+          "listing_url": "https://www.airbnb.com/rooms/581132614194611034",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 581132614194611034
+        },
+        {
+          "name": "[5-2] USC, DTLA Private Bedroom with Private Bath",
+          "listing_url": "https://www.airbnb.com/rooms/587037534108868841",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 587037534108868841
+        },
+        {
+          "name": "[5-5] USC, DTLA Private Bedroom",
+          "listing_url": "https://www.airbnb.com/rooms/734606765604499251",
+          "minimum_nights": 31,
+          "maximum_nights": 365,
+          "listing_id": 734606765604499251
+        },
+        {
+          "name": "[7-5 USC, DTLA] Private room",
+          "listing_url": "https://www.airbnb.com/rooms/754709881613067980",
+          "minimum_nights": 30,
+          "maximum_nights": 365,
+          "listing_id": 754709881613067980
+        },
+        {
+          "name": "[9-2 USC, DTLA] Private room",
+          "listing_url": "https://www.airbnb.com/rooms/754715022281637630",
+          "minimum_nights": 31,
+          "maximum_nights": 180,
+          "listing_id": 754715022281637630
+        },
+        {
+          "name": "Modern One Bedroom USC unit near DTLA",
+          "listing_url": "https://www.airbnb.com/rooms/754727064695113234",
+          "minimum_nights": 30,
+          "maximum_nights": 365,
+          "listing_id": 754727064695113234
+        },
+        {
+          "name": "[12-2] USC, DTLA Very Big Bedroom with Bath",
+          "listing_url": "https://www.airbnb.com/rooms/892011895240948422",
+          "minimum_nights": 30,
+          "maximum_nights": 365,
+          "listing_id": 892011895240948422
+        },
+        {
+          "name": "[12-4] USC, DTLA Private Bedroom",
+          "listing_url": "https://www.airbnb.com/rooms/892018163231653072",
+          "minimum_nights": 30,
+          "maximum_nights": 365,
+          "listing_id": 892018163231653072
+        },
+        {
+          "name": "[8-3 USC, DTLA] Private room with private bath",
+          "listing_url": "https://www.airbnb.com/rooms/1060527268642117934",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 1060527268642117934
+        },
+        {
+          "name": "[2-3] USC, DTLA Private Bedroom",
+          "listing_url": "https://www.airbnb.com/rooms/1130878776469795878",
+          "minimum_nights": 30,
+          "maximum_nights": 365,
+          "listing_id": 1130878776469795878
+        },
+        {
+          "name": "[7-1 USC, DTLA] Private room",
+          "listing_url": "https://www.airbnb.com/rooms/1046596028386377225",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 1046596028386377225
+        },
+        {
+          "name": "[9-1 USC, DTLA] Private room",
+          "listing_url": "https://www.airbnb.com/rooms/1046598384231938353",
+          "minimum_nights": 30,
+          "maximum_nights": 180,
+          "listing_id": 1046598384231938353
+        }
+      ],
+      "reviewer_id": 270238085,
+      "times_reviewed": 22,
+      "listing_id": 892016731796082567,
+      "name": "[12-3] USC, DTLA Private Bedroom",
+      "listing_url": "https://www.airbnb.com/rooms/892016731796082567",
+      "description": "Close to the USC. Convenient to Exposition park, Bank of america stadium. <br /><br />\u2022 Private Bedroom with shared bathroom <br />\u2022 1 full size bed<br />\u2022 Bathroom, kitchen and living room are shared with other guests<br />\u2022 Self check in<br />\u2022 Washer/Dryer<br />\u2022 Free WiFi<br />\u2022 In-Room Private closet<br />\u2022 Smart Lock",
+      "host_name": "Sean",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 30,
+      "maximum_nights": 365
+    },
+    {
+      "reviewer_name": "James",
+      "other_listings_same_host_city": [
+        {
+          "name": "\ud83c\udf37\u6e05\u65b0\u96c5\u81f4\u5927\u4e3b\u5367\ud83c\udf37-\u72ec\u7acb\u536b\u751f\u95f4 /free parking @3\ufe0f\u20e3",
+          "listing_url": "https://www.airbnb.com/rooms/582717567638061890",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 582717567638061890
+        },
+        {
+          "name": "\ud83c\udf38\u51c0\u4eab\u7f8e\u597d\u65f6\u5149\u5c4b\ud83c\udf38-quiet/free parking @ 4\ufe0f\u20e3",
+          "listing_url": "https://www.airbnb.com/rooms/582728833191999201",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 582728833191999201
+        },
+        {
+          "name": "\ud83c\udf39\u7e41\u534e\u4f3c\u9526\u7f8e\u4e3d\u5c4b\ud83c\udf39 -\u5e72\u51c0\u8212\u9002/free parking @ 5\ufe0f\u20e3",
+          "listing_url": "https://www.airbnb.com/rooms/582737053155057700",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 582737053155057700
+        },
+        {
+          "name": "\ud83c\udfe1\u72ec\u7acb\u51fa\u5165\u81ea\u7531\u5c4b\ud83c\udfe1-\u5e26\u7535\u89c6/@\u514d\u8d39\u505c\u8f66@ 7\ufe0f\u20e3",
+          "listing_url": "https://www.airbnb.com/rooms/582759018639602799",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 582759018639602799
+        },
+        {
+          "name": "\ud83d\udc51\u8212\u9002\u5982\u5bb6\u5c0f\u96c5\u5c4b\ud83d\udc51-free parking@ 8\ufe0f\u20e3",
+          "listing_url": "https://www.airbnb.com/rooms/582766356959972141",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 582766356959972141
+        },
+        {
+          "name": "\ud83c\udf3a\u4e00\u7c73\u9633\u5149\ud83c\udf3a-\u5927\u5367\u5ba4/\u5e26\u51b0\u7bb1/\u7535\u89c6/\u514d\u8d39\u505c\u8f66@6\ufe0f\u20e3",
+          "listing_url": "https://www.airbnb.com/rooms/606585163276026445",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 606585163276026445
+        },
+        {
+          "name": "\ud83c\udf1f\u5b89\u9759\u6e29\u99a8\u5c0f\u96c5\u5c4b\ud83c\udf1f-\u514d\u8d39\u505c\u8f66@ 2\ufe0f\u20e3",
+          "listing_url": "https://www.airbnb.com/rooms/608054622901060152",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 608054622901060152
+        },
+        {
+          "name": "4\ufe0f\u20e3Room 4\u60a8\u7684\u4f11\u95f2\u597d\u5c45\u6240\uff0c\u623f\u95f4\u6709\u81ea\u5df1\u7684\u536b\u751f\u95f4\uff0c\u514d\u8d39\u505c\u8f66",
+          "listing_url": "https://www.airbnb.com/rooms/1136423027207812225",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1136423027207812225
+        },
+        {
+          "name": "1\ufe0f\u20e3\u5b81\u9759\u4f18\u96c5\u4e3b\u5367-Room1\uff0c\u623f\u95f4\u5185\u72ec\u7acb\u536b\u751f\u95f4\uff0c\u514d\u8d39\u505c\u8f66",
+          "listing_url": "https://www.airbnb.com/rooms/1026477500398219407",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 1026477500398219407
+        },
+        {
+          "name": "2\ufe0f\u20e3\u5e7d\u96c5\u53ef\u7231\u5927\u4e3b\u5367-Room 2\uff0c\u623f\u95f4\u5185\u72ec\u7acb\u536b\u751f\u95f4\uff0c\u514d\u8d39\u505c\u8f66",
+          "listing_url": "https://www.airbnb.com/rooms/1026532415152665009",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 1026532415152665009
+        },
+        {
+          "name": "3\ufe0f\u20e3\u6e05\u65b0\u5e72\u51c0\u4e3b\u5367-Room3\uff0c\u623f\u95f4\u5185\u72ec\u7acb\u536b\u751f\u95f4\uff0c\u514d\u8d39\u505c\u8f66",
+          "listing_url": "https://www.airbnb.com/rooms/1026537185833969267",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 1026537185833969267
+        },
+        {
+          "name": "4\ufe0f\u20e3\u660e\u4eae\u9633\u5149\u4e3b\u5367\uff0c\u6709\u623f\u95f4\u81ea\u5df1\u7684\u536b\u751f\u95f4\uff0c\u514d\u8d39\u505c\u8f66",
+          "listing_url": "https://www.airbnb.com/rooms/1026544662613295546",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 1026544662613295546
+        },
+        {
+          "name": "EL Monte \u6f02\u4eae\u8212\u9002\u96c5\u95f4Room 2-\u514d\u8d39\u505c\u8f66",
+          "listing_url": "https://www.airbnb.com/rooms/1160180609679526544",
+          "minimum_nights": 1,
+          "maximum_nights": 28,
+          "listing_id": 1160180609679526544
+        }
+      ],
+      "reviewer_id": 659541565,
+      "times_reviewed": 22,
+      "listing_id": 590036409692380818,
+      "name": "\u2618\ufe0f\u99a8\u96c5\u9601\ud83c\udf40-\u5b89\u9759\u6e29\u99a8/\u5e26\u51b0\u7bb1/free parking @1\ufe0f\u20e3",
+      "listing_url": "https://www.airbnb.com/rooms/590036409692380818",
+      "description": "My house is Single-family house, with indoor garden, large backyard, large lounge area, large living room and kitchen\uff0cDaily necessities (microwave oven, oven, coffee maker, toaster, rice cooker, hot kettle, hair dryer, hanging ironing machine, shampoo, shower gel, lotion) everything\u3002The washer and dryer, as well as washing supplies\uff0cAmerican houses are not very sound insulation, please consider if you have any requirements for noise.<br />\u6211\u5bb6\u662f\u72ec\u6237\u4f4f\u5b85\uff0c\u6709\u5ba4\u5185\u5927\u5ba2\u5385\u548c\u53a8\u623f\uff0c\u751f\u6d3b\u5fc5\u9700\u54c1\u5e94\u6709\u5c3d\u6709\uff0c\u6d17\u8863\u673a\u4e0e\u70d8\u5e72\u673a\u4f7f\u7528\uff0c\u5982\u679c\u5bb6\u5177\u6709\u6c61\u6e0d\u9508\u8ff9\uff0c\u5c5e\u4e8e\u6b63\u5e38\u8001\u5316\u72b6\u6001\u3002",
+      "host_name": "Bella",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Thana",
+      "other_listings_same_host_city": [
+        {
+          "name": "3BR/2BA Near the BLVD - Parking, Laundry, Sleep 8",
+          "listing_url": "https://www.airbnb.com/rooms/625344223055305551",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 625344223055305551
+        },
+        {
+          "name": "Private Rm #3 with Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/730094779508811713",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 730094779508811713
+        },
+        {
+          "name": "Brand New 1 BR Guest House, Laundry, Gated Parking",
+          "listing_url": "https://www.airbnb.com/rooms/745248280987532447",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 745248280987532447
+        },
+        {
+          "name": "New 3 BR, Gated Parking, Sleep 8, Walk to BLVD",
+          "listing_url": "https://www.airbnb.com/rooms/745263314734819258",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 745263314734819258
+        },
+        {
+          "name": "Tranquil Guest House with Private Patio, Parking",
+          "listing_url": "https://www.airbnb.com/rooms/638716648697151922",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 638716648697151922
+        },
+        {
+          "name": "Hilltop Guest Suite with Private Yard and Views",
+          "listing_url": "https://www.airbnb.com/rooms/797528151310647441",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 797528151310647441
+        },
+        {
+          "name": "Private Rm #1 with Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/816224087110106164",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816224087110106164
+        },
+        {
+          "name": "Double Queen Rm w/ Kitchenette, Walk to Stores",
+          "listing_url": "https://www.airbnb.com/rooms/816234725828306048",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816234725828306048
+        },
+        {
+          "name": "Former Model Home, 3 Car Garage, Gym, Sleep 14",
+          "listing_url": "https://www.airbnb.com/rooms/816379874436571594",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 816379874436571594
+        },
+        {
+          "name": "Secluded Charming 3BR Retreat + Oversize Parking",
+          "listing_url": "https://www.airbnb.com/rooms/1122730893359746495",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1122730893359746495
+        },
+        {
+          "name": "1st Floor Room #1 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1279928666232402520",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1279928666232402520
+        },
+        {
+          "name": "Private Room #2 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1284252741159745821",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1284252741159745821
+        },
+        {
+          "name": "Private Room #3 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1284274975649927965",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1284274975649927965
+        },
+        {
+          "name": "Private Room #4 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287865089841807739",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287865089841807739
+        },
+        {
+          "name": "Master Suite + Bath in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287933316489386823",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287933316489386823
+        },
+        {
+          "name": "Private Room #7 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1287945495978783853",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1287945495978783853
+        },
+        {
+          "name": "Private Room #8 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1288103082775047404",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 1288103082775047404
+        },
+        {
+          "name": "New Modern Guest House \u2022 Fast WiFi + Parking",
+          "listing_url": "https://www.airbnb.com/rooms/1567204243629232396",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1567204243629232396
+        },
+        {
+          "name": "1st Floor Room #9 in Luxury Home, West Lancaster",
+          "listing_url": "https://www.airbnb.com/rooms/1613568951663582089",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1613568951663582089
+        },
+        {
+          "name": "Hilltop Sanctuary Guest Suite with Private Yard",
+          "listing_url": "https://www.airbnb.com/rooms/1683628887408513097",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1683628887408513097
+        }
+      ],
+      "reviewer_id": 447153348,
+      "times_reviewed": 22,
+      "listing_id": 730133275342548907,
+      "name": "Private Rm #2 with Kitchenette, Walk to Stores",
+      "listing_url": "https://www.airbnb.com/rooms/730133275342548907",
+      "description": "Welcome to our beautifully furnished private room centrally located in desirable College Terrace community about 0.9 mi or 3 min drive to Hwy 14!<br /><br />Whether you're here for work or just passing through, you will find everything you need right in your own room: fast wifi, computer desk, memory foam bed, big closet, fresh bedding / linens, disposable ear plug, water filter, mini kitchenette with snack bar, key to lock the room.<br /><br />This is a shoe free, drug free, non-smoking house.",
+      "host_name": "Daniel & Grace",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "June",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "June",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Rick",
+      "other_listings_same_host_city": [
+        {
+          "name": "South Pasadena Studio Near Metro",
+          "listing_url": "https://www.airbnb.com/rooms/902024",
+          "minimum_nights": 1,
+          "maximum_nights": 1125,
+          "listing_id": 902024
+        }
+      ],
+      "reviewer_id": 195674588,
+      "times_reviewed": 22,
+      "listing_id": 2882434,
+      "name": "South Pasadena Cottage Near Metro",
+      "listing_url": "https://www.airbnb.com/rooms/2882434",
+      "description": "This charming, 106-year-old cottage sits in a stellar location, right in the heart of South Pasadena\u2019s Mission District & Library Park\u2014 two-minute walk to the Metro. It has a walkability score of 92, near restaurants, bars, caf\u00e9s, grocery stores, schools, churches, new music venue \u201cSid the Cat\u201d, and two Trader Joe's!  A short drive to In 'N Out for burgers. The neighborhood is often featured in films, TV shows, commercials and is treasured for its tree-lined quiet streets and historic character.",
+      "host_name": "Kristin And Richard",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "September",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "September",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 2,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Flo",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 41241178,
+      "times_reviewed": 22,
+      "listing_id": 7790339,
+      "name": "Private Room in Historic District",
+      "listing_url": "https://www.airbnb.com/rooms/7790339",
+      "description": "Welcome to our Historic Home, here you'll have full access to everything you could possibly need, and the perks of our college town are just down the street. This room is big enough for two people and very comfortable for one. <br />Enjoy!",
+      "host_name": "Mark",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "February",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "February",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Stephanie",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 259182667,
+      "times_reviewed": 21,
+      "listing_id": 34753879,
+      "name": "A PRIVATE ENTRANCE To A Private Bedroom & Bath",
+      "listing_url": "https://www.airbnb.com/rooms/34753879",
+      "description": "You will have an entire  guest Suite to yourself. Our little unique get-a-way has its own private entrance. It has a small kitchen nook where you can enjoy coffee. You will have your own bathroom that has a shower. The bedroom has a queen size bed and a chair for watching TV with directv. The rooms are equipped with heat and air conditioning.",
+      "host_name": "Kimberly Karene",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "May",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "May",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "David",
+      "other_listings_same_host_city": [
+        {
+          "name": "Private room with full bathroom",
+          "listing_url": "https://www.airbnb.com/rooms/18022456",
+          "minimum_nights": 1,
+          "maximum_nights": 30,
+          "listing_id": 18022456
+        },
+        {
+          "name": "Private room with flat TV",
+          "listing_url": "https://www.airbnb.com/rooms/18024297",
+          "minimum_nights": 1,
+          "maximum_nights": 20,
+          "listing_id": 18024297
+        },
+        {
+          "name": "Private room with the pool view",
+          "listing_url": "https://www.airbnb.com/rooms/22340057",
+          "minimum_nights": 1,
+          "maximum_nights": 5,
+          "listing_id": 22340057
+        },
+        {
+          "name": "Private Guest room",
+          "listing_url": "https://www.airbnb.com/rooms/927369889649059196",
+          "minimum_nights": 365,
+          "maximum_nights": 365,
+          "listing_id": 927369889649059196
+        },
+        {
+          "name": "Guest house in gated community",
+          "listing_url": "https://www.airbnb.com/rooms/1348333450327499263",
+          "minimum_nights": 1,
+          "maximum_nights": 365,
+          "listing_id": 1348333450327499263
+        }
+      ],
+      "reviewer_id": 204102204,
+      "times_reviewed": 21,
+      "listing_id": 22339660,
+      "name": "private room with garden view",
+      "listing_url": "https://www.airbnb.com/rooms/22339660",
+      "description": "The Private room with a flat-screen.<br />Good for a business trip.<br />Non smoker only",
+      "host_name": "Masae",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September"
+      ],
+      "available_again_in": [
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 5
+    },
+    {
+      "reviewer_name": "Nancy",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 91140184,
+      "times_reviewed": 21,
+      "listing_id": 17209787,
+      "name": "Cozy Glendale Studio w/ Private Entrance",
+      "listing_url": "https://www.airbnb.com/rooms/17209787",
+      "description": "Welcome to your cozy private room in Glendale California!<br /><br />**COVID 19 update<br />We ensure a complete thorough sanitization of our room before each guests arrival. Rest easy and stay safe!<br /><br />We hope to accommodate everything you need in your stay. You have 100% privacy, as well as your own side entrance to your room. Enjoy the night on a big fluffy queen bed. Room comes with a kitchenette which includes a mini fridge, toaster oven, coffeemaker, kettle, and utensils.",
+      "host_name": "Loren",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 2,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Arturo",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 568003312,
+      "times_reviewed": 20,
+      "listing_id": 1030744696742937764,
+      "name": "Guest house unit B",
+      "listing_url": "https://www.airbnb.com/rooms/1030744696742937764",
+      "description": "Freeways,supermarket Shopping centers ,airport ,Disneyland. And others entertainment, Park, movie theaters, PlazaMexico shopping center,Beaches Queen Mary, Santa Monica, pier San Pedro pier Saint Francis Hospital all LA .stadiums Universal Studios Hollywood walkway  ,La zoo Restaurants And a lot more",
+      "host_name": "Maricela",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 365
+    },
+    {
+      "reviewer_name": "Henri",
+      "other_listings_same_host_city": [
+        {
+          "name": "Private suite in Quartz Hill area",
+          "listing_url": "https://www.airbnb.com/rooms/758594953330518469",
+          "minimum_nights": 2,
+          "maximum_nights": 1125,
+          "listing_id": 758594953330518469
+        }
+      ],
+      "reviewer_id": 57106499,
+      "times_reviewed": 20,
+      "listing_id": 685715032082476417,
+      "name": "Spacious 1 bedroom RV with 2 bunk beds",
+      "listing_url": "https://www.airbnb.com/rooms/685715032082476417",
+      "description": "You will treasure your time at this memorable place. Pool and Jacuzzi Access.  Very safe area.",
+      "host_name": "Araceli",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "November",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September"
+      ],
+      "minimum_nights": 2,
+      "maximum_nights": 1125
+    },
+    {
+      "reviewer_name": "Karin",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 63980915,
+      "times_reviewed": 19,
+      "listing_id": 1406645222521287630,
+      "name": "10minUCSD-KingBed-AC-Parking-Safe-NearBeachShops",
+      "listing_url": "https://www.airbnb.com/rooms/1406645222521287630",
+      "description": "- Dedicated parking on the driveway & plenty of street parking spaces in a safe neighborhood<br /><br />-  Kitchen fully stocked<br /><br />- Guest house with no shared spaces<br /><br />- Centrally located, near many shops and restaurants <br /><br />805, 5, 52, 163 highways: within 5 min<br />San Diego airport: 20 min<br />UCSD: 10 min<br />Pacific Beach & Ocean Beach: 10 min<br />La Jolla Cove beach: 20min<br />UTC mall: 10 min<br />Sea World: 10 min<br />Balboa Park & San Diego Zoo: 15 min<br />Sea port village: 15 min<br />Old town: 15 min<br />Downtown: 20 min<br />LEGO Land: 30 min",
+      "host_name": "Oyhuk",
+      "city": "San Diego",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "September",
+        "October",
+        "December"
+      ],
+      "available_again_in": [
+        "September",
+        "October",
+        "December"
+      ],
+      "minimum_nights": 1,
+      "maximum_nights": 14
+    },
+    {
+      "reviewer_name": "Sean Patrick",
+      "other_listings_same_host_city": [],
+      "reviewer_id": 5530837,
+      "times_reviewed": 19,
+      "listing_id": 3889098,
+      "name": "Modern Beach Pad w/ office Marina / Venice",
+      "listing_url": "https://www.airbnb.com/rooms/3889098",
+      "description": "LIVE_WORK_BEACH_SURF Steps to Sand- this is actually my primary home, not solely an AIRBNB rental.   <br />It's truly an amazing live-work space.  Several different lounge & work spaces to either separate yourself from one another or collaborate collectively.<br />No AC. Ceiling fans & Sea breezes abundant<br />Primary suite:  high ceilings 42\" TV. <br />Guest Rm: Queen bed, desk, bath;  Modern custom furniture throughout - office & deck great views",
+      "host_name": "Jessica",
+      "city": "Los Angeles",
+      "previously_booked": true,
+      "previously_booked_months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "October",
+        "December"
+      ],
+      "available_again_in": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "October",
+        "December"
+      ],
+      "minimum_nights": 2,
+      "maximum_nights": 730
+    }
+  ]
+}
