@@ -1,0 +1,171 @@
+{
+  "generated": "2026-11-19T12:19:27",
+  "seconds": 678.9,
+  "per_file": [
+    {
+      "file": "/home/claude/realdata/los-angeles/listings.csv",
+      "collection": "listings",
+      "city": "Los Angeles",
+      "rows_read": 43781,
+      "loaded": 43781,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/los-angeles/calendar.csv",
+      "collection": "calendar",
+      "city": "Los Angeles",
+      "rows_read": 15980081,
+      "loaded": 15980081,
+      "dropped": 0,
+      "orphan_rows_kept": 0
+    },
+    {
+      "file": "/home/claude/realdata/los-angeles/reviews.csv",
+      "collection": "reviews",
+      "city": "Los Angeles",
+      "rows_read": 1890200,
+      "loaded": 1890200,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/los-angeles/neighbourhoods.csv",
+      "collection": "neighbourhoods",
+      "city": "Los Angeles",
+      "rows_read": 270,
+      "loaded": 270,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/portland/listings.csv",
+      "collection": "listings",
+      "city": "Portland",
+      "rows_read": 4161,
+      "loaded": 4161,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/portland/calendar.csv",
+      "collection": "calendar",
+      "city": "Portland",
+      "rows_read": 1518765,
+      "loaded": 1518765,
+      "dropped": 0,
+      "orphan_rows_kept": 0
+    },
+    {
+      "file": "/home/claude/realdata/portland/reviews.csv",
+      "collection": "reviews",
+      "city": "Portland",
+      "rows_read": 517984,
+      "loaded": 517984,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/portland/neighbourhoods.csv",
+      "collection": "neighbourhoods",
+      "city": "Portland",
+      "rows_read": 95,
+      "loaded": 95,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/salem/listings.csv",
+      "collection": "listings",
+      "city": "Salem",
+      "rows_read": 343,
+      "loaded": 343,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/salem/calendar.csv",
+      "collection": "calendar",
+      "city": "Salem",
+      "rows_read": 125195,
+      "loaded": 125195,
+      "dropped": 0,
+      "orphan_rows_kept": 0
+    },
+    {
+      "file": "/home/claude/realdata/salem/reviews.csv",
+      "collection": "reviews",
+      "city": "Salem",
+      "rows_read": 22766,
+      "loaded": 22766,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/salem/neighbourhoods.csv",
+      "collection": "neighbourhoods",
+      "city": "Salem",
+      "rows_read": 8,
+      "loaded": 8,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/san-diego/listings.csv",
+      "collection": "listings",
+      "city": "San Diego",
+      "rows_read": 13253,
+      "loaded": 13253,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/san-diego/calendar.csv",
+      "collection": "calendar",
+      "city": "San Diego",
+      "rows_read": 4837411,
+      "loaded": 4837411,
+      "dropped": 0,
+      "orphan_rows_kept": 0
+    },
+    {
+      "file": "/home/claude/realdata/san-diego/reviews.csv",
+      "collection": "reviews",
+      "city": "San Diego",
+      "rows_read": 977802,
+      "loaded": 977802,
+      "dropped": 0
+    },
+    {
+      "file": "/home/claude/realdata/san-diego/neighbourhoods.csv",
+      "collection": "neighbourhoods",
+      "city": "San Diego",
+      "rows_read": 108,
+      "loaded": 108,
+      "dropped": 0
+    }
+  ],
+  "per_collection": {
+    "listings": {
+      "rows_read": 61538,
+      "loaded": 61538,
+      "dropped": 0
+    },
+    "calendar": {
+      "rows_read": 22461452,
+      "loaded": 22461452,
+      "dropped": 0
+    },
+    "reviews": {
+      "rows_read": 3408752,
+      "loaded": 3408752,
+      "dropped": 0
+    },
+    "neighbourhoods": {
+      "rows_read": 481,
+      "loaded": 481,
+      "dropped": 0
+    }
+  },
+  "total_rows_read": 25932223,
+  "total_loaded": 25932223,
+  "proportion_loaded": 1.0,
+  "calendar_date_range": [
+    "2026-09-14 00:00:00",
+    "2027-09-24 00:00:00"
+  ],
+  "review_date_range": [
+    "2008-06-22 00:00:00",
+    "2026-09-24 00:00:00"
+  ]
+}

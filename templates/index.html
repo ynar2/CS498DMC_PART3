@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Airbnb on MongoDB · Cloud Data Pioneers</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <div>
+    <h1>Airbnb on MongoDB</h1>
+    <p class="sub">CS 498 · Cloud Data Pioneers · Los Angeles, Portland, Salem, San Diego</p>
+  </div>
+  <dl class="counts">
+    {% for c, n in counts.items() %}<div><dt>{{ c }}</dt><dd>{{ "{:,}".format(n) }}</dd></div>{% endfor %}
+  </dl>
+</header>
+
+<div class="layout">
+  <nav>
+    {% for id, q in queries.items() %}
+      <a href="/?q={{ id }}" class="{{ 'active' if id == qid }}">{{ q.title }}</a>
+    {% endfor %}
+  </nav>
+
+  <main>
+    <h2>{{ meta.title }}</h2>
+    <form method="get">
+      <input type="hidden" name="q" value="{{ qid }}">
+      {% for name, kind, label in meta.params %}
+        <label>{{ label }}
+          <input name="{{ name }}" value="{{ params[name] }}"
+                 type="{{ 'date' if kind == 'date' else ('number' if kind == 'int' else 'text') }}">
+        </label>
+      {% endfor %}
+      <label class="check"><input type="checkbox" name="explain" value="1"
+             {{ 'checked' if request.args.get('explain') }}> Show execution plan</label>
+      <button name="run" value="1">Run query</button>
+    </form>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    {% if result %}
+      <p class="stats"><strong>{{ "{:,}".format(result.rows|length) }}</strong> rows ·
+        {{ result.ms }} ms · collection <code>{{ result.collection }}</code></p>
+
+      {% if plan %}
+        <div class="plan">
+          <span>Indexes: {% for i in plan.indexes %}<code>{{ i }}</code> {% else %}none{% endfor %}</span>
+          <span>Keys examined: {{ "{:,}".format(plan.keys_examined) }}</span>
+          <span>Docs examined: {{ "{:,}".format(plan.docs_examined) }}</span>
+          <span class="{{ 'warn' if plan.collscan }}">{{ 'Collection scan' if plan.collscan else 'No collection scan' }}</span>
+        </div>
+      {% endif %}
+
+      {% if table %}
+        <div class="table-wrap"><table>
+          <thead><tr>{% for c in cols %}<th>{{ c.replace('_', ' ') }}</th>{% endfor %}</tr></thead>
+          <tbody>
+          {% for row in table %}<tr>
+            {% for val, key in row %}
+              <td class="{{ key }}">{% if key == 'listing_url' and val != '—' %}<a href="{{ val }}" target="_blank">link</a>{% else %}{{ val }}{% endif %}</td>
+            {% endfor %}</tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <p class="empty">No rows match these parameters.</p>
+      {% endif %}
+
+      <details><summary>Aggregation pipeline sent to MongoDB</summary><pre>{{ pipeline }}</pre></details>
+    {% endif %}
+  </main>
+</div>
+</body>
+</html>
